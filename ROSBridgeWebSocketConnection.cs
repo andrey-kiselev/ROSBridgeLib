@@ -149,15 +149,22 @@ using UnityEngine;
 		 * Connect to the remote ros environment.
 		 */
 		 public void Connect() {
+			_applicationIsPlaying = true;
 		 	_myThread = new System.Threading.Thread (Run);
 		 	_myThread.Start ();
 		 }
+
+		// flag to interrupt the loop
+		// https://msdn.microsoft.com/en-us/library/7a2f3ay4(v=vs.90).aspx
+		private volatile bool _applicationIsPlaying;
 
 		/**
 		 * Disconnect from the remote ros environment.
 		 */
 		 public void Disconnect() {
-		 	_myThread.Abort ();
+			_applicationIsPlaying = false;
+			_myThread.Join ();
+			//_myThread.Abort (); // Abort() does not guarantee that the thread is stopped
 		 	foreach(Type p in _subscribers) {
 		 		_ws.Send(ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
 		 		Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
@@ -182,8 +189,9 @@ using UnityEngine;
 		 		_ws.Send(ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
 		 		Debug.Log ("Sending " + ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
 		 	}
-		 	while(true) {
-		 		Thread.Sleep (1000);
+//		 	while(true) {
+			while(_applicationIsPlaying) {	
+		 		Thread.Sleep (100);
 		 	}
 		 }
 
