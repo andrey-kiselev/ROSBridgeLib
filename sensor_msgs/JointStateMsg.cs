@@ -57,21 +57,30 @@ namespace ROSBridgeLib {
 			public JointStateMsg (JSONNode msg) {
 
 				_header = new HeaderMsg (msg ["header"]);
-				_name = names.Replace(msg["name"].ToString(), "").Split(new string[]{","}, StringSplitOptions.RemoveEmptyEntries);
 
-				string [] p_strings = floats.Replace (msg ["position"].ToString (), "").Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
+				string n_string = names.Replace (msg ["name"].ToString (), "");
+//				Debug.Log (n_string);
+				_name = n_string.Split(new string[]{","}, StringSplitOptions.RemoveEmptyEntries);
+
+				string p_string = floats.Replace (msg ["position"].ToString (), "");
+//				Debug.Log (p_string);
+				string [] p_strings = p_string.Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
 				if (p_strings.Length > 0) {
 					_position = Array.ConvertAll( p_strings, float.Parse);
 				}
 
-				string [] v_strings = floats.Replace (msg ["velocity"].ToString (), "").Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
+				string v_string = floats.Replace (msg ["velocity"].ToString (), "");
+//				Debug.Log (v_string);
+				string [] v_strings = v_string.Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
 				if (v_strings.Length > 0) {
-					_velocity = Array.ConvertAll( v_strings, float.Parse);
+//					_velocity = Array.ConvertAll( v_strings, float.Parse);
 				}
 
-				string [] e_strings = floats.Replace (msg ["effort"].ToString (), "").Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
+				string e_string = floats.Replace (msg ["effort"].ToString (), "");
+//				Debug.Log (e_string);
+				string [] e_strings = e_string.Split (new string[]{ "," }, StringSplitOptions.RemoveEmptyEntries);
 				if (e_strings.Length > 0) {
-					_effort = Array.ConvertAll( e_strings, float.Parse);
+//					_effort = Array.ConvertAll( e_strings, float.Parse);
 				}
 
 			}
