@@ -196,77 +196,84 @@ using UnityEngine;
 		 }
 
 		 private void OnMessage(string s) {
-		 	//Debug.Log ("Got a message " + s);
-		 	if((s!= null) && !s.Equals ("")) {
-		 		JSONNode node = JSONNode.Parse(s);
-                //Debug.Log ("Parsed it");
-                string op = node["op"];
-                //Debug.Log ("Operation is " + op);
-                if ("publish".Equals (op)) {
-		 			string topic = node["topic"];
-                    //Debug.Log ("Got a message on " + topic);
-		 			foreach(Type p in _subscribers) {
-		 				if(topic.Equals (GetMessageTopic (p))) {
-                            //Debug.Log ("And will parse it " + GetMessageTopic (p));
-                            ROSBridgeMsg msg = ParseMessage(p, node["msg"]);
-		 					RenderTask newTask = new RenderTask(p, topic, msg);
-		 					lock(_queueLock) {
-		 						bool found = false;
-		 						for(int i=0;i<_taskQ.Count;i++) {
-		 							if(_taskQ[i].getTopic().Equals (topic)) {
-		 								_taskQ.RemoveAt (i);
-		 								_taskQ.Insert (i, newTask);
-		 								found = true;
-		 								break;
-		 							}
-		 						}
-		 						if(!found)
-		 						_taskQ.Add (newTask);
-		 					}
+//		 	Debug.Log ("Got a message " + s);
+			if ((s != null) && !s.Equals ("")) {
+				try {
+					JSONNode node = JSONNode.Parse (s); // this can throw exceptions!!!
+					//Debug.Log ("Parsed it");
+					string op = node ["op"];
+					//Debug.Log ("Operation is " + op);
+					if ("publish".Equals (op)) {
+						string topic = node ["topic"];
+						//Debug.Log ("Got a message on " + topic);
+						foreach (Type p in _subscribers) {
+							if (topic.Equals (GetMessageTopic (p))) {
+								//Debug.Log ("And will parse it " + GetMessageTopic (p));
+								ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
+								RenderTask newTask = new RenderTask (p, topic, msg);
+								lock (_queueLock) {
+									bool found = false;
+									for (int i = 0; i < _taskQ.Count; i++) {
+										if (_taskQ [i].getTopic ().Equals (topic)) {
+											_taskQ.RemoveAt (i);
+											_taskQ.Insert (i, newTask);
+											found = true;
+											break;
+										}
+									}
+									if (!found)
+										_taskQ.Add (newTask);
+								}
 
-		 				}
-		 			}
-		 			} else if("service_response".Equals (op)) {
-		 				Debug.Log ("Got service response " + node.ToString ());
-		 				_serviceName = node["service"];
-		 				_serviceValues = (node["values"] == null) ? "" : node["values"].ToString ();
-		 				} else
-		 				Debug.Log ("Must write code here for other messages");
-		 				} else
-		 				Debug.Log ("Got an empty message from the web socket");
-		 			}
+							}
+						}
+					} else if ("service_response".Equals (op)) {
+						Debug.Log ("Got service response " + node.ToString ());
+						_serviceName = node ["service"];
+						_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
+					} else {
+						Debug.Log ("Must write code here for other messages");
+					}
+				} catch (Exception e) {
+					Debug.Log ("Exception: " + e);
+				}
 
-		 			public void Render() {
-		 				RenderTask newTask = null;
-		 				lock (_queueLock) {
-		 					if(_taskQ.Count > 0) {
-		 						newTask = _taskQ[0];
-		 						_taskQ.RemoveAt (0);
-		 					}
-		 				}
-		 				if(newTask != null)
-		 				Update(newTask.getSubscriber (), newTask.getMsg ());
+			} else {
+				Debug.Log ("Got an empty message from the web socket");
+			}
+		}
 
-		 				if (_serviceName != null) {
-		 					ServiceResponse (_serviceResponse, _serviceName, _serviceValues);
-		 					_serviceName = null;
-		 				}
-		 			}
+		public void Render() {
+			RenderTask newTask = null;
+			lock (_queueLock) {
+				if(_taskQ.Count > 0) {
+					newTask = _taskQ[0];
+					_taskQ.RemoveAt (0);
+				}
+			}
+			if(newTask != null)
+			Update(newTask.getSubscriber (), newTask.getMsg ());
 
-		 			public void Publish(String topic, ROSBridgeMsg msg) {
-		 				if(_ws != null) {
-		 					string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
-				//Debug.Log ("Sending " + s);
-		 					_ws.Send (s);
-		 				}
-		 			}
+			if (_serviceName != null) {
+				ServiceResponse (_serviceResponse, _serviceName, _serviceValues);
+				_serviceName = null;
+			}
+		}
 
-		 			public void CallService(string service, string args) {
-		 				if (_ws != null) {
-		 					string s = ROSBridgeMsg.CallService (service, args);
-		 					Debug.Log ("Sending " + s);
-		 					_ws.Send (s);
-		 				}
-		 			}
-		 		}
-		 	}
+		public void Publish(String topic, ROSBridgeMsg msg) {
+			if(_ws != null) {
+				string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
+	//Debug.Log ("Sending " + s);
+				_ws.Send (s);
+			}
+		}
+
+		public void CallService(string service, string args) {
+			if (_ws != null) {
+				string s = ROSBridgeMsg.CallService (service, args);
+				Debug.Log ("Sending " + s);
+				_ws.Send (s);
+			}
+		}
+	}
+}
