@@ -178,6 +178,7 @@ using UnityEngine;
 
 		 private void Run() {
 		 	_ws = new WebSocket(_host + ":" + _port);
+			//_ws.Compression = CompressionMethod.Deflate;
 		 	_ws.OnMessage += (sender, e) => this.OnMessage(e.Data);
 		 	_ws.Connect();
 
