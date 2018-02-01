@@ -1,7 +1,7 @@
 ﻿using SimpleJSON;
 using ROSBridgeLib.std_msgs;
 using UnityEngine;
-
+using Newtonsoft.Json;
 /**
  * Define a Image message.
  *  
@@ -28,7 +28,7 @@ namespace ROSBridgeLib {
                 _row_step = uint.Parse(msg ["step"]);
                 _data = System.Convert.FromBase64String(msg["data"]);
             }
-
+			[JsonConstructor]
             public ImageMsg(HeaderMsg header, uint height, uint width, string encoding, bool is_bigendian, uint row_step, byte[] data) {
                 _header = header;
                 _height = height;
@@ -36,6 +36,7 @@ namespace ROSBridgeLib {
                 _encoding = encoding;
                 _is_bigendian = is_bigendian;
                 _row_step = row_step;
+				_data = data;
             }
 
             public HeaderMsg GetHeader()

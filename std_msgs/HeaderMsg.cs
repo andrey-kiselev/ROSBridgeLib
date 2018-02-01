@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Text;
 using SimpleJSON;
+using Newtonsoft.Json;
 using UnityEngine;
 
 /**
@@ -27,7 +28,7 @@ namespace ROSBridgeLib {
 				//Debug.Log ("HeaderMsg done ");
 				//Debug.Log (" and it looks like " + this.ToString ());
 			}
-			
+			[JsonConstructor]
 			public HeaderMsg(int seq, TimeMsg stamp, string frame_id) {
 				_seq = seq;
 				_stamp = stamp;

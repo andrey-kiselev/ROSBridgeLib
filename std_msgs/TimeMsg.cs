@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Text;
 using SimpleJSON;
+using Newtonsoft.Json;
 
 /**
  * Define a time message. These have been hand-crafted from the corresponding msg file.
@@ -23,7 +24,7 @@ namespace ROSBridgeLib {
 				_secs = int.Parse(msg["secs"]);
 				_nsecs = int.Parse (msg["nsecs"]);
 			}
-
+			[JsonConstructor]
 			public TimeMsg(int secs, int nsecs) {
 				_secs = secs;
 				_nsecs = nsecs;

@@ -2,12 +2,16 @@
 using System.Threading;
 using System.Reflection;
 using System.Diagnostics;
+using System.Text;
+using System.IO;
 using System;
 using WebSocketSharp;
 using WebSocketSharp.Net;
 using WebSocketSharp.Server;
 using SimpleJSON;
+using Newtonsoft.Json;
 using UnityEngine;
+using ROSBridgeLib.sensor_msgs;
 
 /**
  * This class handles the connection with the external ROS world, deserializing
@@ -75,7 +79,8 @@ using UnityEngine;
 			return (string) t.GetMethod ("GetMessageTopic", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, null);
 		}
 
-		private static ROSBridgeMsg ParseMessage(Type t, JSONNode node) {
+		private static ROSBridgeMsg ParseMessage(Type t, string node) {
+//		private static ROSBridgeMsg ParseMessage(Type t, JSONNode node) {
 			return (ROSBridgeMsg) t.GetMethod ("ParseMessage", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, new object[] {node});
 		}
 
@@ -202,27 +207,65 @@ using UnityEngine;
 		 	}
 		 }
 
+		private bool searchString(string whatStr, string whereStr){
+			if ((whereStr.Length - whereStr.Replace (whatStr, String.Empty).Length) / whatStr.Length > 0)
+				return true;
+			else
+				return false;
+		}
+
+
+//		{
+//			"topic": "depthcloud_encoded_throttle", 
+//			"msg": {
+//				"encoding": "bgr8", 
+//				"height": 1024, 
+//				"header": {
+//					"stamp": {
+//						"secs":	1517484477, 
+//						"nsecs": 28311960
+//					}, 
+//					"frame_id": "camera_depth_optical_frame", 
+//					"seq": 93281
+//				}, 
+//				"step": 3072, 
+//				"data": "qweqweqwe", 
+//				"width": 1024, 
+//				"is_bigendian": 0
+//			}, 
+//			"op": "publish"
+//		}
+
+		public class ImageMsgJSON {
+			[JsonProperty("topic")]
+			public string topic { get; set; }
+			[JsonProperty("msg")]
+			public ImageMsg msg { get; set; }
+			[JsonProperty("op")]
+			public string op { get; set; }
+		}
+
 		 private void OnMessage(string s) {
 //		 	UnityEngine.Debug.Log ("Got a message: " + s);
 			Stopwatch stopwatch = Stopwatch.StartNew ();
 			if ((s != null) && !s.Equals ("")) {
-				try {
-					JSONNode node = JSONNode.Parse (s); // this can throw exceptions!!!
-					//UnityEngine.Debug.Log ("Parsed it");
-					string op = node ["op"];
-					//UnityEngine.Debug.Log ("Operation is " + op);
-					if ("publish".Equals (op)) {
-						string topic = node ["topic"];
-						//UnityEngine.Debug.Log ("Got a message on " + topic);
+
+				string topp = "depthcloud_encoded_throttle";
+
+				if (searchString (topp, s.Substring(0, 100))) {
+					UnityEngine.Debug.Log ("Received " + topp);
+
+					try{
+						
+						ImageMsgJSON dc_msg = JsonConvert.DeserializeObject <ImageMsgJSON> (s);
+
 						foreach (Type p in _subscribers) {
-							if (topic.Equals (GetMessageTopic (p))) {
-								//UnityEngine.Debug.Log ("And will parse it " + GetMessageTopic (p));
-								ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
-								RenderTask newTask = new RenderTask (p, topic, msg);
+							if (dc_msg.topic.Equals (GetMessageTopic (p))) {
+								RenderTask newTask = new RenderTask (p, dc_msg.topic, dc_msg.msg);
 								lock (_queueLock) {
 									bool found = false;
 									for (int i = 0; i < _taskQ.Count; i++) {
-										if (_taskQ [i].getTopic ().Equals (topic)) {
+										if (_taskQ [i].getTopic ().Equals (dc_msg.topic)) {
 											_taskQ.RemoveAt (i);
 											_taskQ.Insert (i, newTask);
 											found = true;
@@ -235,17 +278,58 @@ using UnityEngine;
 
 							}
 						}
-					} else if ("service_response".Equals (op)) {
-						UnityEngine.Debug.Log ("Got service response " + node.ToString ());
-						_serviceName = node ["service"];
-						_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
-					} else {
-						UnityEngine.Debug.Log ("Must write code here for other messages");
-					}
-				} catch (Exception e) {
-					UnityEngine.Debug.Log ("Exception: " + e);
-				}
 
+
+					} catch (Exception e) {
+						UnityEngine.Debug.Log ("Exception: " + e);
+					}
+						
+
+//					UnityEngine.Debug.Log ("Got a message: " + dc_msg);
+
+
+
+				} else {
+					try {
+						JSONNode node = JSONNode.Parse (s); // this can throw exceptions!!!
+						//UnityEngine.Debug.Log ("Parsed it");
+						string op = node ["op"];
+						//UnityEngine.Debug.Log ("Operation is " + op);
+						if ("publish".Equals (op)) {
+							string topic = node ["topic"];
+//							UnityEngine.Debug.Log ("Got a message on " + topic);
+							foreach (Type p in _subscribers) {
+								if (topic.Equals (GetMessageTopic (p))) {
+									//UnityEngine.Debug.Log ("And will parse it " + GetMessageTopic (p));
+									ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
+									RenderTask newTask = new RenderTask (p, topic, msg);
+									lock (_queueLock) {
+										bool found = false;
+										for (int i = 0; i < _taskQ.Count; i++) {
+											if (_taskQ [i].getTopic ().Equals (topic)) {
+												_taskQ.RemoveAt (i);
+												_taskQ.Insert (i, newTask);
+												found = true;
+												break;
+											}
+										}
+										if (!found)
+											_taskQ.Add (newTask);
+									}
+
+								}
+							}
+						} else if ("service_response".Equals (op)) {
+							UnityEngine.Debug.Log ("Got service response " + node.ToString ());
+							_serviceName = node ["service"];
+							_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
+						} else {
+							UnityEngine.Debug.Log ("Must write code here for other messages");
+						}
+					} catch (Exception e) {
+						UnityEngine.Debug.Log ("Exception: " + e);
+					}
+				}
 			} else {
 				UnityEngine.Debug.Log ("Got an empty message from the web socket");
 			}
