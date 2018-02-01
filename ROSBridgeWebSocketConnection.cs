@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Reflection;
+using System.Diagnostics;
 using System;
 using WebSocketSharp;
 using WebSocketSharp.Net;
@@ -167,49 +168,55 @@ using UnityEngine;
 			//_myThread.Abort (); // Abort() does not guarantee that the thread is stopped
 		 	foreach(Type p in _subscribers) {
 		 		_ws.Send(ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
-		 		Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
+		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
 		 	}
 		 	foreach(Type p in _publishers) {
 		 		_ws.Send(ROSBridgeMsg.UnAdvertise (GetMessageTopic(p)));
-		 		Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise(GetMessageTopic(p)));
+		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise(GetMessageTopic(p)));
 		 	}
 		 	_ws.Close ();
 		 }
 
 		 private void Run() {
 		 	_ws = new WebSocket(_host + ":" + _port);
-			//_ws.Compression = CompressionMethod.Deflate;
+			_ws.Compression = CompressionMethod.Deflate;
+			_ws.Log.Level = LogLevel.Trace;
+			_ws.Log.File = "D:/socket.log";
+			_ws.OnError += (sender, e) => {UnityEngine.Debug.Log("Error: " + e.Message);};
+			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed");};
+
 		 	_ws.OnMessage += (sender, e) => this.OnMessage(e.Data);
 		 	_ws.Connect();
 
 		 	foreach(Type p in _subscribers) {
 		 		_ws.Send(ROSBridgeMsg.Subscribe (GetMessageTopic(p), GetMessageType (p)));
-		 		Debug.Log ("Sending " + ROSBridgeMsg.Subscribe (GetMessageTopic(p), GetMessageType (p)));
+		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Subscribe (GetMessageTopic(p), GetMessageType (p)));
 		 	}
 		 	foreach(Type p in _publishers) {
 		 		_ws.Send(ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
-		 		Debug.Log ("Sending " + ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
+		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
 		 	}
 //		 	while(true) {
 			while(_applicationIsPlaying) {	
-		 		Thread.Sleep (100);
+		 		Thread.Sleep (1000);
 		 	}
 		 }
 
 		 private void OnMessage(string s) {
-//		 	Debug.Log ("Got a message " + s);
+//		 	UnityEngine.Debug.Log ("Got a message: " + s);
+			Stopwatch stopwatch = Stopwatch.StartNew ();
 			if ((s != null) && !s.Equals ("")) {
 				try {
 					JSONNode node = JSONNode.Parse (s); // this can throw exceptions!!!
-					//Debug.Log ("Parsed it");
+					//UnityEngine.Debug.Log ("Parsed it");
 					string op = node ["op"];
-					//Debug.Log ("Operation is " + op);
+					//UnityEngine.Debug.Log ("Operation is " + op);
 					if ("publish".Equals (op)) {
 						string topic = node ["topic"];
-						//Debug.Log ("Got a message on " + topic);
+						//UnityEngine.Debug.Log ("Got a message on " + topic);
 						foreach (Type p in _subscribers) {
 							if (topic.Equals (GetMessageTopic (p))) {
-								//Debug.Log ("And will parse it " + GetMessageTopic (p));
+								//UnityEngine.Debug.Log ("And will parse it " + GetMessageTopic (p));
 								ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
 								RenderTask newTask = new RenderTask (p, topic, msg);
 								lock (_queueLock) {
@@ -229,19 +236,21 @@ using UnityEngine;
 							}
 						}
 					} else if ("service_response".Equals (op)) {
-						Debug.Log ("Got service response " + node.ToString ());
+						UnityEngine.Debug.Log ("Got service response " + node.ToString ());
 						_serviceName = node ["service"];
 						_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
 					} else {
-						Debug.Log ("Must write code here for other messages");
+						UnityEngine.Debug.Log ("Must write code here for other messages");
 					}
 				} catch (Exception e) {
-					Debug.Log ("Exception: " + e);
+					UnityEngine.Debug.Log ("Exception: " + e);
 				}
 
 			} else {
-				Debug.Log ("Got an empty message from the web socket");
+				UnityEngine.Debug.Log ("Got an empty message from the web socket");
 			}
+			stopwatch.Stop ();
+			UnityEngine.Debug.Log ("Message importing time: " + stopwatch.ElapsedMilliseconds);
 		}
 
 		public void Render() {
@@ -264,7 +273,7 @@ using UnityEngine;
 		public void Publish(String topic, ROSBridgeMsg msg) {
 			if(_ws != null) {
 				string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
-	//Debug.Log ("Sending " + s);
+	//UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
 			}
 		}
@@ -272,7 +281,7 @@ using UnityEngine;
 		public void CallService(string service, string args) {
 			if (_ws != null) {
 				string s = ROSBridgeMsg.CallService (service, args);
-				Debug.Log ("Sending " + s);
+				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
 			}
 		}
