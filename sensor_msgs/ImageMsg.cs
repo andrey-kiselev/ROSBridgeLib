@@ -60,6 +60,10 @@ namespace ROSBridgeLib {
                 return _data;
             }
 
+			public bool GetEndianness() {
+				return _is_bigendian;
+			}
+
             public static string GetMessageType() {
                 return "sensor_msgs/Image";
             }
@@ -70,7 +74,8 @@ namespace ROSBridgeLib {
                     "width=" + _width +
                     "encoding=" + _encoding +
                     "is_bigendian=" + _is_bigendian +
-                    "row_step=" + _row_step + "]";
+                    "row_step=" + _row_step + 
+					"data=" + System.Convert.ToBase64String(_data) + "]";
             }
 
             public override string ToYAMLString() {
