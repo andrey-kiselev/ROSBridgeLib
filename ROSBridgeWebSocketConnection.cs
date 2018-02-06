@@ -79,8 +79,7 @@ using ROSBridgeLib.sensor_msgs;
 			return (string) t.GetMethod ("GetMessageTopic", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, null);
 		}
 
-		private static ROSBridgeMsg ParseMessage(Type t, string node) {
-//		private static ROSBridgeMsg ParseMessage(Type t, JSONNode node) {
+		private static ROSBridgeMsg ParseMessage(Type t, JSONNode node) {
 			return (ROSBridgeMsg) t.GetMethod ("ParseMessage", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, new object[] {node});
 		}
 
@@ -171,14 +170,16 @@ using ROSBridgeLib.sensor_msgs;
 			_applicationIsPlaying = false;
 			_myThread.Join ();
 			//_myThread.Abort (); // Abort() does not guarantee that the thread is stopped
-		 	foreach(Type p in _subscribers) {
-		 		_ws.Send(ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
-		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe(GetMessageTopic(p)));
-		 	}
-		 	foreach(Type p in _publishers) {
-		 		_ws.Send(ROSBridgeMsg.UnAdvertise (GetMessageTopic(p)));
-		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise(GetMessageTopic(p)));
-		 	}
+			if (_ws != null && _ws.IsConnected) {
+				foreach (Type p in _subscribers) {
+					_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
+					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
+				}
+				foreach (Type p in _publishers) {
+					_ws.Send (ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
+					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
+				}
+			}
 		 	_ws.Close ();
 		 }
 
@@ -186,86 +187,50 @@ using ROSBridgeLib.sensor_msgs;
 		 	_ws = new WebSocket(_host + ":" + _port);
 			_ws.Compression = CompressionMethod.Deflate;
 			_ws.Log.Level = LogLevel.Trace;
-			_ws.Log.File = "D:/socket.log";
+//			_ws.Log.File = "D:/socket.log";
 			_ws.OnError += (sender, e) => {UnityEngine.Debug.Log("Error: " + e.Message);};
 			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed");};
 
 		 	_ws.OnMessage += (sender, e) => this.OnMessage(e.Data);
 		 	_ws.Connect();
-
-		 	foreach(Type p in _subscribers) {
-		 		_ws.Send(ROSBridgeMsg.Subscribe (GetMessageTopic(p), GetMessageType (p)));
-		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Subscribe (GetMessageTopic(p), GetMessageType (p)));
-		 	}
-		 	foreach(Type p in _publishers) {
-		 		_ws.Send(ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
-		 		UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Advertise (GetMessageTopic(p), GetMessageType(p)));
-		 	}
-//		 	while(true) {
+			if (_ws != null && _ws.IsConnected) {
+				foreach (Type p in _subscribers) {
+					_ws.Send (ROSBridgeMsg.Subscribe (GetMessageTopic (p), GetMessageType (p)));
+					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Subscribe (GetMessageTopic (p), GetMessageType (p)));
+				}
+				foreach (Type p in _publishers) {
+					_ws.Send (ROSBridgeMsg.Advertise (GetMessageTopic (p), GetMessageType (p)));
+					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Advertise (GetMessageTopic (p), GetMessageType (p)));
+				}
+			}
 			while(_applicationIsPlaying) {	
 		 		Thread.Sleep (1000);
 		 	}
 		 }
-
-		private bool searchString(string whatStr, string whereStr){
-			if ((whereStr.Length - whereStr.Replace (whatStr, String.Empty).Length) / whatStr.Length > 0)
-				return true;
-			else
-				return false;
-		}
-
-
-//		{
-//			"topic": "depthcloud_encoded_throttle", 
-//			"msg": {
-//				"encoding": "bgr8", 
-//				"height": 1024, 
-//				"header": {
-//					"stamp": {
-//						"secs":	1517484477, 
-//						"nsecs": 28311960
-//					}, 
-//					"frame_id": "camera_depth_optical_frame", 
-//					"seq": 93281
-//				}, 
-//				"step": 3072, 
-//				"data": "qweqweqwe", 
-//				"width": 1024, 
-//				"is_bigendian": 0
-//			}, 
-//			"op": "publish"
-//		}
-
-		public class ImageMsgJSON {
-			[JsonProperty("topic")]
-			public string topic { get; set; }
-			[JsonProperty("msg")]
-			public ImageMsg msg { get; set; }
-			[JsonProperty("op")]
-			public string op { get; set; }
-		}
 
 		 private void OnMessage(string s) {
 //		 	UnityEngine.Debug.Log ("Got a message: " + s);
 			Stopwatch stopwatch = Stopwatch.StartNew ();
 			if ((s != null) && !s.Equals ("")) {
 
-				string topp = "depthcloud_encoded_throttle";
-
-				if (searchString (topp, s.Substring(0, 100))) {
-					UnityEngine.Debug.Log ("Received " + topp);
-
-					try{
-						
-						ImageMsgJSON dc_msg = JsonConvert.DeserializeObject <ImageMsgJSON> (s);
-
+				try {
+//					ImageMsgJSON dc_msg = JsonConvert.DeserializeObject <ImageMsgJSON> (s);
+					JSONNode node = JSONNode.Parse(s); // this can throw exceptions!!!
+					//UnityEngine.Debug.Log ("Parsed it");
+					string op = node ["op"];
+					//UnityEngine.Debug.Log ("Operation is " + op);
+					if ("publish".Equals (op)) {
+						string topic = node ["topic"];
+//						UnityEngine.Debug.Log ("Got a message on " + topic);
 						foreach (Type p in _subscribers) {
-							if (dc_msg.topic.Equals (GetMessageTopic (p))) {
-								RenderTask newTask = new RenderTask (p, dc_msg.topic, dc_msg.msg);
+							if (topic.Equals (GetMessageTopic (p))) {
+								//UnityEngine.Debug.Log ("And will parse it " + GetMessageTopic (p));
+								ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
+								RenderTask newTask = new RenderTask (p, topic, msg);
 								lock (_queueLock) {
 									bool found = false;
 									for (int i = 0; i < _taskQ.Count; i++) {
-										if (_taskQ [i].getTopic ().Equals (dc_msg.topic)) {
+										if (_taskQ [i].getTopic ().Equals (topic)) {
 											_taskQ.RemoveAt (i);
 											_taskQ.Insert (i, newTask);
 											found = true;
@@ -278,63 +243,21 @@ using ROSBridgeLib.sensor_msgs;
 
 							}
 						}
-
-
-					} catch (Exception e) {
-						UnityEngine.Debug.Log ("Exception: " + e);
+					} else if ("service_response".Equals (op)) {
+						UnityEngine.Debug.Log ("Got service response " + node.ToString ());
+						_serviceName = node ["service"];
+						_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
+					} else {
+						UnityEngine.Debug.Log ("Must write code here for other messages");
 					}
-						
-
-//					UnityEngine.Debug.Log ("Got a message: " + dc_msg);
-
-
-
-				} else {
-					try {
-						JSONNode node = JSONNode.Parse (s); // this can throw exceptions!!!
-						//UnityEngine.Debug.Log ("Parsed it");
-						string op = node ["op"];
-						//UnityEngine.Debug.Log ("Operation is " + op);
-						if ("publish".Equals (op)) {
-							string topic = node ["topic"];
-//							UnityEngine.Debug.Log ("Got a message on " + topic);
-							foreach (Type p in _subscribers) {
-								if (topic.Equals (GetMessageTopic (p))) {
-									//UnityEngine.Debug.Log ("And will parse it " + GetMessageTopic (p));
-									ROSBridgeMsg msg = ParseMessage (p, node ["msg"]);
-									RenderTask newTask = new RenderTask (p, topic, msg);
-									lock (_queueLock) {
-										bool found = false;
-										for (int i = 0; i < _taskQ.Count; i++) {
-											if (_taskQ [i].getTopic ().Equals (topic)) {
-												_taskQ.RemoveAt (i);
-												_taskQ.Insert (i, newTask);
-												found = true;
-												break;
-											}
-										}
-										if (!found)
-											_taskQ.Add (newTask);
-									}
-
-								}
-							}
-						} else if ("service_response".Equals (op)) {
-							UnityEngine.Debug.Log ("Got service response " + node.ToString ());
-							_serviceName = node ["service"];
-							_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
-						} else {
-							UnityEngine.Debug.Log ("Must write code here for other messages");
-						}
-					} catch (Exception e) {
-						UnityEngine.Debug.Log ("Exception: " + e);
-					}
+				} catch (Exception e) {
+					UnityEngine.Debug.Log ("Exception: " + e);
 				}
 			} else {
 				UnityEngine.Debug.Log ("Got an empty message from the web socket");
 			}
 			stopwatch.Stop ();
-			UnityEngine.Debug.Log ("Message importing time: " + stopwatch.ElapsedMilliseconds);
+//			UnityEngine.Debug.Log ("Message importing time: " + stopwatch.ElapsedMilliseconds);
 		}
 
 		public void Render() {
@@ -355,17 +278,17 @@ using ROSBridgeLib.sensor_msgs;
 		}
 
 		public void Publish(String topic, ROSBridgeMsg msg) {
-			if(_ws != null) {
+			if(_ws != null && _ws.IsConnected) {
 				string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
-	//UnityEngine.Debug.Log ("Sending " + s);
+//				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
 			}
 		}
 
 		public void CallService(string service, string args) {
-			if (_ws != null) {
+			if (_ws != null && _ws.IsConnected) {
 				string s = ROSBridgeMsg.CallService (service, args);
-				UnityEngine.Debug.Log ("Sending " + s);
+//				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
 			}
 		}
