@@ -170,7 +170,7 @@ using ROSBridgeLib.sensor_msgs;
 			_applicationIsPlaying = false;
 			_myThread.Join ();
 			//_myThread.Abort (); // Abort() does not guarantee that the thread is stopped
-			if (_ws != null && _ws.IsConnected) {
+			if (_ws != null) {
 				foreach (Type p in _subscribers) {
 					_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
 					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
@@ -185,15 +185,15 @@ using ROSBridgeLib.sensor_msgs;
 
 		 private void Run() {
 		 	_ws = new WebSocket(_host + ":" + _port);
-			_ws.Compression = CompressionMethod.Deflate;
+//			_ws.Compression = CompressionMethod.Deflate;
 			_ws.Log.Level = LogLevel.Trace;
 //			_ws.Log.File = "D:/socket.log";
 			_ws.OnError += (sender, e) => {UnityEngine.Debug.Log("Error: " + e.Message);};
-			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed");};
+			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed: " + e.Reason);};
 
 		 	_ws.OnMessage += (sender, e) => this.OnMessage(e.Data);
 		 	_ws.Connect();
-			if (_ws != null && _ws.IsConnected) {
+			if (_ws != null) {
 				foreach (Type p in _subscribers) {
 					_ws.Send (ROSBridgeMsg.Subscribe (GetMessageTopic (p), GetMessageType (p)));
 					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.Subscribe (GetMessageTopic (p), GetMessageType (p)));
@@ -278,7 +278,8 @@ using ROSBridgeLib.sensor_msgs;
 		}
 
 		public void Publish(String topic, ROSBridgeMsg msg) {
-			if(_ws != null && _ws.IsConnected && _ws.IsAlive) {
+//			if(_ws != null && _ws.IsConnected && _ws.IsAlive) { //this call take a lot of time
+			if(_ws != null) {
 				string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
 //				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
@@ -286,7 +287,7 @@ using ROSBridgeLib.sensor_msgs;
 		}
 
 		public void CallService(string service, string args) {
-			if (_ws != null && _ws.IsConnected) {
+			if (_ws != null) {
 				string s = ROSBridgeMsg.CallService (service, args);
 //				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
