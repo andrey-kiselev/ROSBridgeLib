@@ -278,7 +278,7 @@ using ROSBridgeLib.sensor_msgs;
 		}
 
 		public void Publish(String topic, ROSBridgeMsg msg) {
-			if(_ws != null && _ws.IsConnected) {
+			if(_ws != null && _ws.IsConnected && _ws.IsAlive) {
 				string s = ROSBridgeMsg.Publish (topic, msg.ToYAMLString ());
 //				UnityEngine.Debug.Log ("Sending " + s);
 				_ws.Send (s);
