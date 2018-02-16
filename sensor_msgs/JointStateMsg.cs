@@ -118,9 +118,9 @@ namespace ROSBridgeLib {
 			public override string ToString() {
 				return null;
 //				return "JointStates [header=" + _header.ToString() +
-////					"name=[\'" + string.Join("\', \'", _name) + "\']" + 
-////					"position=[" + string.Join(", ", _position) + "]" + 
-////					"velocity=[" + _velocity + "]" + 
+//					"name=[\'" + string.Join("\', \'", _name) + "\']" + 
+//					"position=[" + string.Join(", ", _position) + "]" + 
+//					"velocity=[" + _velocity + "]" + 
 //					"effort=[" + _effort + "]" +  "]";
 			}
 			public override string ToYAMLString() {

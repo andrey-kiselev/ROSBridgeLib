@@ -172,12 +172,20 @@ using ROSBridgeLib.sensor_msgs;
 			//_myThread.Abort (); // Abort() does not guarantee that the thread is stopped
 			if (_ws != null) {
 				foreach (Type p in _subscribers) {
-					_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
-					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
+					try {
+						_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
+						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
+					} catch {
+						UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)) + " failed.");
+					}
 				}
 				foreach (Type p in _publishers) {
-					_ws.Send (ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
-					UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
+					try{
+						_ws.Send (ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
+						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
+					} catch {
+						UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)) + " failed.");
+					}
 				}
 			}
 		 	_ws.Close ();
