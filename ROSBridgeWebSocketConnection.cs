@@ -180,7 +180,7 @@ using ROSBridgeLib.sensor_msgs;
 						_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
 						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
 					} catch {
-						UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)) + " failed.");
+						UnityEngine.Debug.LogError ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)) + " failed.");
 					}
 				}
 				foreach (Type p in _publishers) {
@@ -188,7 +188,7 @@ using ROSBridgeLib.sensor_msgs;
 						_ws.Send (ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
 						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
 					} catch {
-						UnityEngine.Debug.Log ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)) + " failed.");
+						UnityEngine.Debug.LogError ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)) + " failed.");
 					}
 				}
 			}
@@ -200,7 +200,7 @@ using ROSBridgeLib.sensor_msgs;
 //			_ws.Compression = CompressionMethod.Deflate;
 			_ws.Log.Level = LogLevel.Trace;
 //			_ws.Log.File = "D:/socket.log";
-			_ws.OnError += (sender, e) => {UnityEngine.Debug.Log("Error: " + e.Message);};
+			_ws.OnError += (sender, e) => {UnityEngine.Debug.LogError("Error: " + e.Message);};
 			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed: " + e.Reason);};
 
 		 	_ws.OnMessage += (sender, e) => this.OnMessage(e.Data);
