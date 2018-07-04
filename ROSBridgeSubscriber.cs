@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using UnityEngine;
 using SimpleJSON;
 
 /**
@@ -33,7 +34,7 @@ namespace ROSBridgeLib {
 			return null;
 		}
 
-		public static void CallBack(ROSBridgeMsg msg) {
+		public static void CallBack(ROSBridgeMsg msg, GameObject gameObject) {
 		}
 	}
 }

@@ -83,8 +83,8 @@ using ROSBridgeLib.sensor_msgs;
 			return (ROSBridgeMsg) t.GetMethod ("ParseMessage", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, new object[] {node});
 		}
 
-		private static void Update(Type t, ROSBridgeMsg msg) {
-			t.GetMethod ("CallBack", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, new object[] {msg});
+		private static void Update(Type t, ROSBridgeMsg msg, UnityEngine.GameObject gameObject) {
+			t.GetMethod ("CallBack", BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy).Invoke (null, new object[] {msg, gameObject});
 		}
 
 		private static void ServiceResponse(Type t, string service, string yaml) {
@@ -114,17 +114,21 @@ using ROSBridgeLib.sensor_msgs;
 			throw new Exception ("missing GetMessageTopic method");
 		}
 
+        // Unity gameObject the connector is attached to
+        private UnityEngine.GameObject _gameObject;
+
 		/**
 		 * Make a connection to a host/port. 
 		 * This does not actually start the connection, use Connect to do that.
 		 */
-		 public ROSBridgeWebSocketConnection(string host, int port) {
+		 public ROSBridgeWebSocketConnection(string host, int port, UnityEngine.GameObject gameObject) {
 		 	_host = host;
 		 	_port = port;
 		 	_myThread = null;
 		 	_subscribers = new List<Type> ();
 		 	_publishers = new List<Type> ();
-		 }
+            _gameObject = gameObject;
+         }
 
 		/**
 		 * Add a service response callback to this connection.
@@ -159,9 +163,9 @@ using ROSBridgeLib.sensor_msgs;
 		 	_myThread.Start ();
 		 }
 
-		// flag to interrupt the loop
-		// https://msdn.microsoft.com/en-us/library/7a2f3ay4(v=vs.90).aspx
-		private volatile bool _applicationIsPlaying;
+        // flag to interrupt the loop
+        // https://msdn.microsoft.com/en-us/library/7a2f3ay4(v=vs.90).aspx
+        private volatile bool _applicationIsPlaying;
 
 		/**
 		 * Disconnect from the remote ros environment.
@@ -256,13 +260,13 @@ using ROSBridgeLib.sensor_msgs;
 						_serviceName = node ["service"];
 						_serviceValues = (node ["values"] == null) ? "" : node ["values"].ToString ();
 					} else {
-						UnityEngine.Debug.Log ("Must write code here for other messages");
+						UnityEngine.Debug.LogWarning ("Must write code here for other messages");
 					}
 				} catch (Exception e) {
-					UnityEngine.Debug.Log ("Exception: " + e);
+					UnityEngine.Debug.LogException(e);
 				}
 			} else {
-				UnityEngine.Debug.Log ("Got an empty message from the web socket");
+				UnityEngine.Debug.LogError ("Got an empty message from the web socket");
 			}
 			stopwatch.Stop ();
 //			UnityEngine.Debug.Log ("Message importing time: " + stopwatch.ElapsedMilliseconds);
@@ -277,7 +281,7 @@ using ROSBridgeLib.sensor_msgs;
 				}
 			}
 			if(newTask != null)
-			Update(newTask.getSubscriber (), newTask.getMsg ());
+			Update(newTask.getSubscriber (), newTask.getMsg (), _gameObject);
 
 			if (_serviceName != null) {
 				ServiceResponse (_serviceResponse, _serviceName, _serviceValues);
