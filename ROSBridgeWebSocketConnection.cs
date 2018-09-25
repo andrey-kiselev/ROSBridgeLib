@@ -180,7 +180,7 @@ using ROSBridgeLib.sensor_msgs;
 						_ws.Send (ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
 						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)));
 					} catch {
-						UnityEngine.Debug.LogError ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)) + " failed.");
+						UnityEngine.Debug.LogWarning ("Sending " + ROSBridgeMsg.UnSubscribe (GetMessageTopic (p)) + " failed.");
 					}
 				}
 				foreach (Type p in _publishers) {
@@ -188,7 +188,7 @@ using ROSBridgeLib.sensor_msgs;
 						_ws.Send (ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
 						UnityEngine.Debug.Log ("Send " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)));
 					} catch {
-						UnityEngine.Debug.LogError ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)) + " failed.");
+						UnityEngine.Debug.LogWarning ("Sending " + ROSBridgeMsg.UnAdvertise (GetMessageTopic (p)) + " failed.");
 					}
 				}
 			}
