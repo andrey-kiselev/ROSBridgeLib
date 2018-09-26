@@ -199,7 +199,7 @@ using ROSBridgeLib.sensor_msgs;
 		 	_ws = new WebSocket(_host + ":" + _port);
 //			_ws.Compression = CompressionMethod.Deflate;
 			_ws.Log.Level = LogLevel.Trace;
-//			_ws.Log.File = "D:/socket.log";
+//			_ws.Log.File = "socket.log";
 			_ws.OnError += (sender, e) => {UnityEngine.Debug.LogError("Error: " + e.Message);};
 			_ws.OnClose += (sender, e) => {UnityEngine.Debug.Log("Connection closed: " + e.Reason);};
 
